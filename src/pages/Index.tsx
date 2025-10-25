@@ -189,6 +189,33 @@ export default function Index() {
     }
   };
 
+  const handleUpdateProfile = async (username: string, avatarUrl: string) => {
+    if (!currentUser) return;
+    
+    try {
+      const response = await fetch(API_AUTH, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_profile',
+          user_id: currentUser.id,
+          username,
+          avatar_url: avatarUrl
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        setCurrentUser(data.user);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        toast({ title: 'Профиль обновлен' });
+      }
+    } catch (error) {
+      toast({ title: 'Ошибка обновления', variant: 'destructive' });
+    }
+  };
+
   useEffect(() => {
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
@@ -251,6 +278,8 @@ export default function Index() {
         setSelectedMembers={setSelectedMembers}
         createChat={createChat}
         createGroup={createGroup}
+        onUpdateProfile={handleUpdateProfile}
+        setCurrentUser={setCurrentUser}
       />
       
       <div className="flex-1 flex flex-col">
@@ -261,6 +290,8 @@ export default function Index() {
           newMessage={newMessage}
           setNewMessage={setNewMessage}
           sendMessage={sendMessage}
+          apiUrl={API_CHATS}
+          onUpdate={loadChats}
         />
       </div>
     </div>

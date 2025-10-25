@@ -96,10 +96,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     chat = cur.fetchone()
                     chat_id = chat['id']
                     
-                    for member_id in members:
+                    for idx, member_id in enumerate(members):
+                        role = 'admin' if idx == 0 and is_group else 'member'
                         cur.execute(
-                            "INSERT INTO chat_members (chat_id, user_id) VALUES (%s, %s)",
-                            (chat_id, member_id)
+                            "INSERT INTO chat_members (chat_id, user_id, role) VALUES (%s, %s, %s)",
+                            (chat_id, member_id, role)
                         )
                     
                     conn.commit()
@@ -119,6 +120,28 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 content = body.get('content')
                 
                 with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute("""
+                        SELECT cm.can_write, c.settings
+                        FROM chat_members cm
+                        JOIN chats c ON c.id = cm.chat_id
+                        WHERE cm.chat_id = %s AND cm.user_id = %s
+                    """, (chat_id, user_id))
+                    member = cur.fetchone()
+                    
+                    if not member:
+                        return {
+                            'statusCode': 403,
+                            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                            'body': json.dumps({'error': 'Not a member'})
+                        }
+                    
+                    if not member['can_write']:
+                        return {
+                            'statusCode': 403,
+                            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                            'body': json.dumps({'error': 'Writing forbidden'})
+                        }
+                    
                     cur.execute(
                         "INSERT INTO messages (chat_id, user_id, content) VALUES (%s, %s, %s) RETURNING id, chat_id, user_id, content, created_at",
                         (chat_id, user_id, content)
@@ -133,6 +156,90 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                             'Access-Control-Allow-Origin': '*'
                         },
                         'body': json.dumps(dict(message), default=str)
+                    }
+            
+            elif action == 'update_chat_settings':
+                chat_id = body.get('chat_id')
+                user_id = body.get('user_id')
+                settings = body.get('settings', {})
+                
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute(
+                        "SELECT role FROM chat_members WHERE chat_id = %s AND user_id = %s",
+                        (chat_id, user_id)
+                    )
+                    member = cur.fetchone()
+                    
+                    if not member or member['role'] != 'admin':
+                        return {
+                            'statusCode': 403,
+                            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                            'body': json.dumps({'error': 'Admin only'})
+                        }
+                    
+                    cur.execute(
+                        "UPDATE chats SET settings = %s WHERE id = %s RETURNING id, settings",
+                        (json.dumps(settings), chat_id)
+                    )
+                    chat = cur.fetchone()
+                    conn.commit()
+                    
+                    return {
+                        'statusCode': 200,
+                        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                        'body': json.dumps(dict(chat), default=str)
+                    }
+            
+            elif action == 'update_member_role':
+                chat_id = body.get('chat_id')
+                user_id = body.get('user_id')
+                target_user_id = body.get('target_user_id')
+                new_role = body.get('role')
+                can_write = body.get('can_write', True)
+                
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute(
+                        "SELECT role FROM chat_members WHERE chat_id = %s AND user_id = %s",
+                        (chat_id, user_id)
+                    )
+                    member = cur.fetchone()
+                    
+                    if not member or member['role'] != 'admin':
+                        return {
+                            'statusCode': 403,
+                            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                            'body': json.dumps({'error': 'Admin only'})
+                        }
+                    
+                    cur.execute(
+                        "UPDATE chat_members SET role = %s, can_write = %s WHERE chat_id = %s AND user_id = %s RETURNING chat_id, user_id, role, can_write",
+                        (new_role, can_write, chat_id, target_user_id)
+                    )
+                    updated = cur.fetchone()
+                    conn.commit()
+                    
+                    return {
+                        'statusCode': 200,
+                        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                        'body': json.dumps(dict(updated), default=str)
+                    }
+            
+            elif action == 'get_chat_members':
+                chat_id = body.get('chat_id')
+                
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute("""
+                        SELECT u.id, u.username, u.avatar_url, cm.role, cm.can_write
+                        FROM chat_members cm
+                        JOIN users u ON u.id = cm.user_id
+                        WHERE cm.chat_id = %s
+                    """, (chat_id,))
+                    members = cur.fetchall()
+                    
+                    return {
+                        'statusCode': 200,
+                        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                        'body': json.dumps([dict(m) for m in members], default=str)
                     }
         
         return {

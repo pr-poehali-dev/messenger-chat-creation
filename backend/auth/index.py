@@ -101,6 +101,28 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                             'token': auth_token
                         }, default=str)
                     }
+            
+            elif action == 'update_profile':
+                user_id = body.get('user_id')
+                username = body.get('username')
+                avatar_url = body.get('avatar_url')
+                
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute(
+                        "UPDATE users SET username = %s, avatar_url = %s WHERE id = %s RETURNING id, email, username, avatar_url, created_at",
+                        (username, avatar_url, user_id)
+                    )
+                    user = cur.fetchone()
+                    conn.commit()
+                    
+                    return {
+                        'statusCode': 200,
+                        'headers': {
+                            'Content-Type': 'application/json',
+                            'Access-Control-Allow-Origin': '*'
+                        },
+                        'body': json.dumps({'user': dict(user)}, default=str)
+                    }
         
         elif method == 'GET':
             with conn.cursor(cursor_factory=RealDictCursor) as cur:

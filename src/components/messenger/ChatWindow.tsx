@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import Icon from '@/components/ui/icon';
+import GroupSettingsDialog from './GroupSettingsDialog';
 
 interface User {
   id: number;
@@ -36,6 +38,8 @@ interface ChatWindowProps {
   newMessage: string;
   setNewMessage: (value: string) => void;
   sendMessage: () => void;
+  apiUrl: string;
+  onUpdate: () => void;
 }
 
 export default function ChatWindow({
@@ -44,8 +48,11 @@ export default function ChatWindow({
   messages,
   newMessage,
   setNewMessage,
-  sendMessage
+  sendMessage,
+  apiUrl,
+  onUpdate
 }: ChatWindowProps) {
+  const [showGroupSettings, setShowGroupSettings] = useState(false);
   if (!selectedChat) {
     return (
       <div className="flex-1 flex items-center justify-center text-gray-400">
@@ -59,18 +66,26 @@ export default function ChatWindow({
 
   return (
     <>
-      <div className="h-16 bg-white border-b border-gray-200 flex items-center px-6">
-        <Avatar className="mr-3">
-          <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-500 text-white">
-            {selectedChat.is_group ? <Icon name="Users" size={20} /> : selectedChat.name.charAt(0).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
-        <div>
-          <h2 className="font-semibold text-gray-900">{selectedChat.name}</h2>
-          <p className="text-xs text-gray-500">
-            {selectedChat.is_group ? 'Группа' : 'В сети'}
-          </p>
+      <div className="h-16 bg-white border-b border-gray-200 flex items-center px-6 justify-between">
+        <div className="flex items-center">
+          <Avatar className="mr-3">
+            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-500 text-white">
+              {selectedChat.is_group ? <Icon name="Users" size={20} /> : selectedChat.name.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <h2 className="font-semibold text-gray-900">{selectedChat.name}</h2>
+            <p className="text-xs text-gray-500">
+              {selectedChat.is_group ? 'Группа' : 'В сети'}
+            </p>
+          </div>
         </div>
+        
+        {selectedChat.is_group && (
+          <Button variant="ghost" size="sm" onClick={() => setShowGroupSettings(true)}>
+            <Icon name="Settings" size={18} />
+          </Button>
+        )}
       </div>
       
       <ScrollArea className="flex-1 p-6">
@@ -125,6 +140,15 @@ export default function ChatWindow({
           </Button>
         </div>
       </div>
+      
+      <GroupSettingsDialog
+        open={showGroupSettings}
+        onOpenChange={setShowGroupSettings}
+        chat={selectedChat}
+        currentUserId={currentUser?.id || 0}
+        apiUrl={apiUrl}
+        onUpdate={onUpdate}
+      />
     </>
   );
 }

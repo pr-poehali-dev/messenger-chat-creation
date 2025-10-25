@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -5,6 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
+import ProfileDialog from './ProfileDialog';
 
 interface User {
   id: number;
@@ -40,6 +42,8 @@ interface ChatSidebarProps {
   setSelectedMembers: (value: number[] | ((prev: number[]) => number[])) => void;
   createChat: (userId: number, username: string) => void;
   createGroup: () => void;
+  onUpdateProfile: (username: string, avatarUrl: string) => void;
+  setCurrentUser: (user: User) => void;
 }
 
 export default function ChatSidebar({
@@ -59,8 +63,12 @@ export default function ChatSidebar({
   setGroupName,
   setSelectedMembers,
   createChat,
-  createGroup
+  createGroup,
+  onUpdateProfile,
+  setCurrentUser
 }: ChatSidebarProps) {
+  const [showProfile, setShowProfile] = useState(false);
+  
   const filteredUsers = allUsers.filter(u => 
     u.id !== currentUser?.id && 
     u.username.toLowerCase().includes(searchQuery.toLowerCase())
@@ -70,7 +78,7 @@ export default function ChatSidebar({
     <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center gap-3 mb-4">
-          <Avatar>
+          <Avatar className="cursor-pointer" onClick={() => setShowProfile(true)}>
             <AvatarFallback className="bg-blue-500 text-white">
               {currentUser?.username.charAt(0).toUpperCase()}
             </AvatarFallback>
@@ -79,6 +87,9 @@ export default function ChatSidebar({
             <h2 className="font-semibold text-gray-900">{currentUser?.username}</h2>
             <p className="text-xs text-gray-500">В сети</p>
           </div>
+          <Button variant="ghost" size="sm" onClick={() => setShowProfile(true)}>
+            <Icon name="Settings" size={18} />
+          </Button>
         </div>
         
         <div className="flex gap-2">
@@ -210,6 +221,13 @@ export default function ChatSidebar({
           ))}
         </div>
       </ScrollArea>
+      
+      <ProfileDialog
+        open={showProfile}
+        onOpenChange={setShowProfile}
+        currentUser={currentUser}
+        onUpdateProfile={onUpdateProfile}
+      />
     </div>
   );
 }
