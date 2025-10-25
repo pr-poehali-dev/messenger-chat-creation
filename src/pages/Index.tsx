@@ -53,6 +53,7 @@ export default function Index() {
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [showSearchUsers, setShowSearchUsers] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
   
@@ -287,25 +288,74 @@ export default function Index() {
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
-        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex items-center gap-3 mb-4">
             <Avatar>
               <AvatarFallback className="bg-blue-500 text-white">
                 {currentUser?.username.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <div>
+            <div className="flex-1">
               <h2 className="font-semibold text-gray-900">{currentUser?.username}</h2>
               <p className="text-xs text-gray-500">В сети</p>
             </div>
           </div>
           
-          <Dialog open={showCreateGroup} onOpenChange={setShowCreateGroup}>
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Icon name="UserPlus" size={20} />
-              </Button>
-            </DialogTrigger>
+          <div className="flex gap-2">
+            <Dialog open={showSearchUsers} onOpenChange={setShowSearchUsers}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="flex-1" size="sm">
+                  <Icon name="MessageCircle" size={16} className="mr-2" />
+                  Новый чат
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Создать чат</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label>Поиск пользователя</Label>
+                    <Input 
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Введите имя..."
+                    />
+                  </div>
+                  <ScrollArea className="h-64 border rounded-md p-2">
+                    {filteredUsers.map(user => (
+                      <div 
+                        key={user.id}
+                        onClick={() => {
+                          createChat(user.id, user.username);
+                          setShowSearchUsers(false);
+                          setSearchQuery('');
+                        }}
+                        className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
+                      >
+                        <Avatar>
+                          <AvatarFallback className="bg-indigo-500 text-white">
+                            {user.username.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900">{user.username}</p>
+                          <p className="text-xs text-gray-500">{user.email}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </ScrollArea>
+                </div>
+              </DialogContent>
+            </Dialog>
+            
+            <Dialog open={showCreateGroup} onOpenChange={setShowCreateGroup}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="flex-1" size="sm">
+                  <Icon name="Users" size={16} className="mr-2" />
+                  Новая группа
+                </Button>
+              </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Создать группу</DialogTitle>
@@ -352,42 +402,12 @@ export default function Index() {
           </Dialog>
         </div>
         
-        <div className="p-3">
-          <div className="relative">
-            <Icon name="Search" size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <Input 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Поиск..."
-              className="pl-10"
-            />
-          </div>
+        <div className="border-b border-gray-200 p-3">
+          <h3 className="text-sm font-semibold text-gray-700 px-2">Мои чаты</h3>
         </div>
         
         <ScrollArea className="flex-1">
-          {searchQuery ? (
-            <div className="p-2">
-              <p className="text-xs text-gray-500 px-3 py-2">Пользователи</p>
-              {filteredUsers.map(user => (
-                <div 
-                  key={user.id}
-                  onClick={() => createChat(user.id, user.username)}
-                  className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
-                >
-                  <Avatar>
-                    <AvatarFallback className="bg-indigo-500 text-white">
-                      {user.username.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900">{user.username}</p>
-                    <p className="text-xs text-gray-500">{user.email}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="p-2">
+          <div className="p-2">
               {chats.map(chat => (
                 <div 
                   key={chat.id}
@@ -407,8 +427,7 @@ export default function Index() {
                   </div>
                 </div>
               ))}
-            </div>
-          )}
+          </div>
         </ScrollArea>
       </div>
       
