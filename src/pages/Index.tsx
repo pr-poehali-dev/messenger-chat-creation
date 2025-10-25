@@ -356,7 +356,7 @@ export default function Index() {
                   Новая группа
                 </Button>
               </DialogTrigger>
-            <DialogContent>
+              <DialogContent>
               <DialogHeader>
                 <DialogTitle>Создать группу</DialogTitle>
               </DialogHeader>
@@ -398,8 +398,9 @@ export default function Index() {
                   Создать
                 </Button>
               </div>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
         
         <div className="border-b border-gray-200 p-3">
